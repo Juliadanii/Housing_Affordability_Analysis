@@ -13,7 +13,7 @@ import time
 import requests
 import pandas as pd
 
-API_KEY = os.environ.get("CENSUS_API_KEY", "")
+API_KEY = os.environ.get("1013c10180e323bd9b773244e55cc71fd695cd03", "")
 BASE_URL = "https://api.census.gov/data"
 YEARS = [2019, 2021, 2023]  # ACS 5-year vintages to compare over time
 RAW_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "raw")
