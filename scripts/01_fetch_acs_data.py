@@ -9,11 +9,12 @@ Requires a free Census API key:
 """
 
 import os
+import sys
 import time
 import requests
 import pandas as pd
 
-API_KEY = os.environ.get("1013c10180e323bd9b773244e55cc71fd695cd03", "")
+API_KEY = (os.environ.get("CENSUS_API_KEY") or os.environ.get("API_KEY") or "").strip()
 BASE_URL = "https://api.census.gov/data"
 YEARS = [2019, 2021, 2023]  # ACS 5-year vintages to compare over time
 RAW_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "raw")
@@ -43,15 +44,24 @@ GEOGRAPHIES = {
 
 def fetch_acs(year: int, geo_label: str, geo_query: str) -> pd.DataFrame:
     """Fetch one geography level for one ACS vintage."""
+    if not API_KEY:
+        sys.exit(
+            "Missing Census API key. Set CENSUS_API_KEY (or API_KEY) to a valid "
+            "free key from https://api.census.gov/data/key_signup.html"
+        )
+
     var_list = ",".join(VARIABLES.keys())
     url = f"{BASE_URL}/{year}/acs/acs5"
     params = {"get": var_list, "for": geo_query}
-    if API_KEY:
-        params["key"] = API_KEY
+    params["key"] = API_KEY
 
     resp = requests.get(url, params=params, timeout=60)
-    resp.raise_for_status()
-    rows = resp.json()
+    if resp.status_code != 200:
+        resp.raise_for_status()
+    try:
+        rows = resp.json()
+    except ValueError as exc:
+        raise RuntimeError(f"Unable to parse Census API response: {resp.text[:200]}") from exc
 
     df = pd.DataFrame(rows[1:], columns=rows[0])
     df = df.rename(columns=VARIABLES)
